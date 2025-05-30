@@ -62,23 +62,6 @@ def search():
         logger.error(f"Error processing query: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/answer', methods=['POST'])
-def answer():
-    """Endpoint for Webflow integration - maps to the same functionality as /search."""
-    data = request.json
-    query = data.get('query', '')
-    use_llm = data.get('use_llm', False)
-    
-    if not query:
-        return jsonify({'error': 'No query provided'}), 400
-    
-    try:
-        result = rag.answer_question(query, use_llm=use_llm)
-        return jsonify(result)
-    except Exception as e:
-        logger.error(f"Error processing query: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/health')
 def health():
     """Health check endpoint."""
