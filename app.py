@@ -44,8 +44,18 @@ EXAMPLE_QUESTIONS = [
 ]
 
 @app.route('/')
-def home():
-    return render_template('index.html', example_questions=EXAMPLE_QUESTIONS)
+def api_info():
+    """API information endpoint."""
+    return jsonify({
+        'name': 'Immigration Lawyer RAG Backend',
+        'version': '1.0',
+        'endpoints': {
+            'health': '/api/health',
+            'search': '/search (POST)',
+            'test': '/test'
+        },
+        'status': 'running'
+    })
 
 @app.route('/search', methods=['POST'])
 def search():
