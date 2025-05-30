@@ -8,6 +8,7 @@ import os
 from flask import Flask, request, jsonify, render_template
 import logging
 from flask_cors import CORS
+from datetime import datetime
 
 # Import the RAG pipeline
 from rag_pipeline import LegalSearchRAG
@@ -66,6 +67,16 @@ def search():
 def health():
     """Health check endpoint."""
     return jsonify({'status': 'ok'})
+
+@app.route('/test', methods=['GET', 'POST'])
+def test_endpoint():
+    """Simple test endpoint that doesn't use RAG."""
+    return jsonify({
+        'status': 'success',
+        'message': 'Basic Flask functionality working',
+        'method': request.method,
+        'timestamp': str(datetime.now())
+    })
 
 def create_app():
     """Create and configure the Flask app."""
