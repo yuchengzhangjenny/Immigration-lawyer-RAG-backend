@@ -1,15 +1,9 @@
 services:
   - type: web
-    name: legal-search-ai-app
+    name: immigration-lawyer-rag-backend
     runtime: python
-    buildCommand: |
-      pip install -r requirements.txt &&
-      cd legal-search-nextjs &&
-      npm install &&
-      npm run build
-    startCommand: |
-      cd legal-search-nextjs && npm run start &
-      gunicorn app:create_app()
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
