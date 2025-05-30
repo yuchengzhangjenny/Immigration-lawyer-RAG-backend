@@ -88,6 +88,16 @@ def test_endpoint():
         'timestamp': str(datetime.now())
     })
 
+@app.route('/simple-test', methods=['GET', 'POST'])
+def simple_test():
+    """Simple test endpoint without RAG pipeline."""
+    return jsonify({
+        'status': 'success',
+        'message': 'Simple test working!',
+        'environment': 'production' if os.environ.get('PORT') else 'development',
+        'timestamp': str(datetime.now())
+    })
+
 def create_app():
     """Create and configure the Flask app."""
     # Ensure the templates directory exists
