@@ -31,8 +31,16 @@ logger = logging.getLogger("legal_search_app")
 app = Flask(__name__)
 CORS(app)
 
-# Initialize RAG system
+# Initialize RAG system at startup (eager loading)
 rag = LegalSearchRAG()
+print("🚀 Loading RAG pipeline at startup...")
+try:
+    rag.load_resources()
+    print("✅ RAG pipeline loaded successfully!")
+    print(f"📊 Loaded {len(rag.chunks_df)} document chunks")
+except Exception as e:
+    print(f"❌ Failed to load RAG pipeline: {e}")
+    rag = None
 
 # Example questions to help users get started
 EXAMPLE_QUESTIONS = [
@@ -66,6 +74,36 @@ def search():
     if not query:
         return jsonify({'error': 'No query provided'}), 400
     
+    # Check if RAG pipeline loaded successfully
+    if rag is None:
+        return jsonify({
+            'error': 'RAG pipeline not available',
+            'message': 'The AI models failed to load at startup. Please try again later.',
+            'query': query
+        }), 503
+    
+    try:
+        result = rag.answer_question(query, use_llm=use_llm)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error processing query: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/test1', methods=['POST'])
+def test_search():
+    """Test endpoint with predefined query"""
+    data = request.json
+    query = "What are the requirements for a green card through marriage?"
+    use_llm = data.get('use_llm', False)
+    
+    # Check if RAG pipeline loaded successfully
+    if rag is None:
+        return jsonify({
+            'error': 'RAG pipeline not available',
+            'message': 'The AI models failed to load at startup. Please try again later.',
+            'query': query
+        }), 503
+    
     try:
         result = rag.answer_question(query, use_llm=use_llm)
         return jsonify(result)
@@ -98,6 +136,29 @@ def simple_test():
         'timestamp': str(datetime.now())
     })
 
+@app.route('/api/status')
+def startup_status():
+    """Check if RAG pipeline is ready."""
+    if rag is None:
+        return jsonify({
+            'status': 'loading',
+            'message': 'AI models are still loading, please wait...',
+            'ready': False
+        })
+    elif not rag.loaded:
+        return jsonify({
+            'status': 'loading', 
+            'message': 'RAG pipeline initializing...',
+            'ready': False
+        })
+    else:
+        return jsonify({
+            'status': 'ready',
+            'message': 'All systems ready!',
+            'ready': True,
+            'chunks_loaded': len(rag.chunks_df) if rag.chunks_df is not None else 0
+        })
+
 def create_app():
     """Create and configure the Flask app."""
     # Ensure the templates directory exists
@@ -106,12 +167,8 @@ def create_app():
     # Ensure the static directory exists
     os.makedirs('static', exist_ok=True)
     
-    # Load RAG resources
-    try:
-        rag.load_resources()
-        logger.info("RAG resources loaded successfully")
-    except Exception as e:
-        logger.error(f"Error loading RAG resources: {str(e)}")
+    # RAG resources already loaded at startup - no need to reload here
+    logger.info("App created successfully")
     
     return app
 
