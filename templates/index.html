@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Immigration Law Search</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">Immigration Law Search</h1>
+            <p class="text-gray-600">Search through CFR Title 8, INA, and USCIS Policy Manual</p>
+        </header>
+
+        <div class="max-w-3xl mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <div class="mb-4">
+                    <textarea id="query" 
+                              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              rows="3"
+                              placeholder="Enter your legal question here..."></textarea>
+                </div>
+                <div class="flex items-center mb-4">
+                    <input type="checkbox" id="use-llm" class="mr-2">
+                    <label for="use-llm" class="text-gray-700">Use DeepSeek LLM for enhanced answers</label>
+                    <div class="ml-2 group relative">
+                        <span class="cursor-help text-blue-500">?</span>
+                        <div class="absolute bottom-full mb-2 hidden group-hover:block bg-white p-2 rounded shadow-lg text-sm w-64">
+                            Using the DeepSeek LLM will provide more natural language answers but may take longer to load the first time.
+                        </div>
+                    </div>
+                </div>
+                <button onclick="search()" 
+                        class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                    Search
+                </button>
+            </div>
+
+            <!-- Example Questions Section -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h3 class="text-lg font-semibold mb-3 text-gray-700">Example Questions</h3>
+                <div class="grid grid-cols-1 gap-2">
+                    {% for question in example_questions %}
+                    <button onclick="setQuery('{{ question }}')" 
+                            class="text-left px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded text-gray-700 text-sm transition-colors">
+                        {{ question }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="result" class="bg-white rounded-lg shadow-lg p-6 hidden">
+                <h2 class="text-2xl font-semibold mb-4">Answer</h2>
+                <div id="answer" class="prose max-w-none mb-6"></div>
+                
+                <h3 class="text-xl font-semibold mb-3">Sources</h3>
+                <div id="sources" class="space-y-2"></div>
+            </div>
+
+            <div id="loading" class="hidden text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+                <p class="mt-2 text-gray-600">Searching through legal documents...</p>
+                <p id="llm-loading-msg" class="mt-1 text-gray-600 hidden">Loading DeepSeek LLM (first time may take a minute)...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function search() {
+            const query = document.getElementById('query').value.trim();
+            const useLLM = document.getElementById('use-llm').checked;
+            
+            if (!query) return;
+
+            // Show loading
+            document.getElementById('loading').classList.remove('hidden');
+            if (useLLM) {
+                document.getElementById('llm-loading-msg').classList.remove('hidden');
+            } else {
+                document.getElementById('llm-loading-msg').classList.add('hidden');
+            }
+            document.getElementById('result').classList.add('hidden');
+
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        query: query,
+                        use_llm: useLLM
+                    }),
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Display answer
+                    document.getElementById('answer').innerHTML = data.answer.replace(/\n/g, '<br>');
+                    
+                    // Display sources
+                    const sourcesDiv = document.getElementById('sources');
+                    sourcesDiv.innerHTML = '';
+                    data.retrieved_chunks.forEach(chunk => {
+                        const sourceDiv = document.createElement('div');
+                        sourceDiv.className = 'text-sm text-gray-600';
+                        sourceDiv.textContent = `${chunk.source_type} - ${chunk.source_file}`;
+                        sourcesDiv.appendChild(sourceDiv);
+                    });
+
+                    document.getElementById('result').classList.remove('hidden');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        function setQuery(question) {
+            document.getElementById('query').value = question;
+            // Automatically scroll to query textarea
+            document.getElementById('query').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('query').focus();
+        }
+
+        // Allow Enter key to trigger search
+        document.getElementById('query').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                search();
+            }
+        });
+    </script>
+</body>
+</html> 
